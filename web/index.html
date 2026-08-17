@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disaster Response Command Center</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script src="/web/lib/tailwind.js"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{colors:{'cmd-bg':'#0a0e17','cmd-panel':'#111827','cmd-border':'#1f2937'}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="/web/lib/maplibre-gl.css" rel="stylesheet">
+<script src="/web/lib/maplibre-gl.js"></script>
+<script src="/web/lib/three.min.js"></script>
+<script src="/web/lib/react.min.js"></script>
+<script src="/web/lib/react-dom.min.js"></script>
+<script src="/web/lib/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#root{width:100%;height:100%;overflow:hidden;background:#0a0e17;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}
+.glass{background:rgba(17,24,39,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06)}
+.map-box{position:absolute;inset:0}
+.three-canvas{position:absolute;inset:0;outline:none}
+@keyframes pulse-d{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}.pulse-c{animation:pulse-d 2s infinite}
+@keyframes pdot{0%{box-shadow:0 0 0 0 rgba(16,185,129,.7)}70%{box-shadow:0 0 0 6px rgba(16,185,129,0)}}.dot-on{width:8px;height:8px;border-radius:50%;background:#10b981;animation:pdot 2s infinite;display:inline-block}
+.text-grad{background:linear-gradient(135deg,#3b82f6,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sev-5{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}.sev-4{background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.3)}.sev-3{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.3)}.sev-2{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}.sev-1{background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)}
+.maplibregl-popup-content{background:rgba(17,24,39,.95)!important;color:#f3f4f6!important;border:1px solid #374151;border-radius:8px;padding:8px 12px;font-size:13px}
+</style>
+</head>
+<body>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#888;font-family:Inter,sans-serif;flex-direction:column;gap:12px"><div style="width:40px;height:40px;border:3px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite"></div><div>Loading Command Center...</div></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+const SC={5:'#ef4444',4:'#f97316',3:'#f59e0b',2:'#3b82f6',1:'#10b981'};
+const SL={5:'CRITICAL',4:'SEVERE',3:'HIGH',2:'MODERATE',1:'LOW'};
+const api=async(u,o)=>{const r=await fetch(u,{headers:{'Content-Type':'application/json'},...o});if(!r.ok)throw new Error(r.status);return r.json()};
+const ago=t=>{if(!t)return'';const s=(Date.now()-new Date(t).getTime())/1000;if(s<60)return'now';if(s<3600)return Math.floor(s/60)+'m';if(s<86400)return Math.floor(s/3600)+'h';return Math.floor(s/86400)+'d'};
+const Badge=({t,c})=><span style={{background:c+'22',color:c,border:'1px solid '+c+'44'}} className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">{t}</span>;
+
+/* ═══ DASHBOARD ═══ */
+const Dashboard=()=>{
+  const[s,setS]=useState(null);
+  useEffect(()=>{const f=async()=>{try{const r=await fetch('/api/dashboard');if(r.ok)setS(await r.json())}catch(e){}};f();const i=setInterval(f,15000);return()=>clearInterval(i)},[]);
+  if(!s)return<div className="flex items-center justify-center h-full text-gray-500">Loading dashboard...</div>;
+  const Card=({title,val,icon,color})=><div className="glass rounded-xl p-5 border-l-4 hover:shadow-lg transition" style={{borderLeftColor:color}}>
+    <div className="flex justify-between"><span className="text-gray-400 text-sm">{title}</span><span className="text-2xl opacity-70">{icon}</span></div>
+    <div className="text-3xl font-bold mt-2" style={{fontFamily:'JetBrains Mono'}}>{typeof val==='number'?Number.isInteger(val)?val:val.toFixed(1):val}</div>
+  </div>;
+  return<div className="p-6 h-full overflow-y-auto space-y-6">
+    <h2 className="text-2xl font-bold">Operations Overview</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <Card title="Active Incidents" val={s.active_incidents} icon="🔥" color="#ef4444"/>
+      <Card title="Resources Deployed" val={s.deployed_resources} icon="🚛" color="#3b82f6"/>
+      <Card title="Pending Approvals" val={s.pending_approvals} icon="⏳" color="#f59e0b"/>
+      <Card title="Avg Response (min)" val={s.avg_response_time_minutes} icon="⚡" color="#6366f1"/>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="glass rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-gray-300 mb-3">Incidents by Severity</h3>
+        {[5,4,3,2,1].map(sv=>{const v=(s.incidents_by_severity||{})[sv]||(s.incidents_by_severity||{})[String(sv)]||0;
+          return<div key={sv} className="flex items-center gap-3 mb-2"><span className="text-xs w-16 text-gray-400 text-right">{SL[sv]}</span>
+            <div className="flex-1 h-5 bg-gray-800 rounded overflow-hidden"><div className="h-full rounded" style={{width:Math.max(v*20,8)+'%',background:SC[sv]}}/></div>
+            <span className="text-xs font-mono w-6 text-gray-300">{v}</span></div>})}
+      </div>
+      <div className="glass rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-gray-300 mb-3">Recent Activity</h3>
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          {(s.recent_activity||[]).slice(0,10).map((a,i)=><div key={i} className="flex gap-2 text-xs py-1 border-b border-gray-800">
+            <span className="text-gray-500 font-mono flex-shrink-0">{ago(a.timestamp)}</span>
+            <span className="text-gray-300">{a.action} {a.entity_type}</span>
+          </div>)}
+          {(!s.recent_activity||!s.recent_activity.length)&&<div className="text-gray-500 text-sm text-center py-4">No activity yet</div>}
+        </div>
+      </div>
+    </div>
+    <div className="glass rounded-xl p-5">
+      <h3 className="text-sm font-semibold text-gray-300 mb-2">Status Breakdown</h3>
+      <div className="flex flex-wrap gap-2">{Object.entries(s.incidents_by_status||{}).map(([k,v])=>
+        <span key={k} className="px-3 py-1 rounded-full text-xs bg-gray-800 border border-gray-700">{k}: <strong className="text-white">{v}</strong></span>
+      )}</div>
+      {s.allocation_efficiency!==undefined&&<div className="mt-3"><div className="flex justify-between text-xs text-gray-400 mb-1"><span>Efficiency</span><span className="font-mono">{(s.allocation_efficiency*100).toFixed(0)}%</span></div>
+        <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500" style={{width:s.allocation_efficiency*100+'%'}}/></div></div>}
+    </div>
+  </div>;
+};
+
+/* ═══ 2D MAP ═══ */
+const MapView=({incidents,resources,roads,hazards,hospitals,shelters,allocations,eoLayers,onSelect})=>{
+  const ref=useRef(null),mapR=useRef(null),ready=useRef(false);
+  useEffect(()=>{
+    if(!ref.current||mapR.current||typeof maplibregl==='undefined')return;
+    const m=new maplibregl.Map({container:ref.current,style:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',center:[92.94,26.20],zoom:7,attributionControl:false});
+    mapR.current=m;
+    m.on('load',()=>{
+      m.addSource('hz',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      m.addLayer({id:'hz-f',type:'fill',source:'hz',paint:{'fill-color':['match',['get','type'],'EARTHQUAKE','#f59e0b','FLOOD','#3b82f6','FIRE','#ef4444','#8b5cf6'],'fill-opacity':.15}});
+      m.addSource('rd',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      m.addLayer({id:'rd-l',type:'line',source:'rd',paint:{'line-color':['match',['get','state'],'OPEN','#10b981','DEGRADED','#f59e0b','BLOCKED','#ef4444','#6b7280'],'line-width':3,'line-opacity':.8}});
+      m.addSource('hosp',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      m.addLayer({id:'hosp-l',type:'circle',source:'hosp',paint:{'circle-radius':8,'circle-color':'#3b82f6','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+      m.addSource('shlt',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      m.addLayer({id:'shlt-l',type:'circle',source:'shlt',paint:{'circle-radius':7,'circle-color':'#10b981','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+      m.addSource('res',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      m.addLayer({id:'res-l',type:'circle',source:'res',paint:{'circle-radius':7,'circle-color':['match',['get','type'],'AMBULANCE','#f472b6','RESCUE_TEAM','#fb923c','MEDICAL_UNIT','#38bdf8','HAZMAT','#a78bfa','#6b7280'],'circle-stroke-width':2,'circle-stroke-color':'rgba(255,255,255,.8)'}});
+      m.addSource('inc',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      m.addLayer({id:'inc-g',type:'circle',source:'inc',paint:{'circle-radius':['interpolate',['linear'],['get','severity'],1,14,5,30],'circle-color':['match',['get','severity'],5,'#ef4444',4,'#f97316',3,'#f59e0b',2,'#3b82f6',1,'#10b981','#888'],'circle-opacity':.12,'circle-blur':1}});
+      m.addLayer({id:'inc-l',type:'circle',source:'inc',paint:{'circle-radius':['interpolate',['linear'],['get','severity'],1,5,5,12],'circle-color':['match',['get','severity'],5,'#ef4444',4,'#f97316',3,'#f59e0b',2,'#3b82f6',1,'#10b981','#888'],'circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+      m.addSource('rte',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      m.addLayer({id:'rte-l',type:'line',source:'rte',paint:{'line-color':'#a78bfa','line-width':2,'line-dasharray':[4,4],'line-opacity':.7}});
+      ready.current=true;
+      m.on('click','inc-l',e=>{if(e.features?.length&&onSelect)onSelect(e.features[0].properties.id)});
+      const pop=new maplibregl.Popup({closeButton:false,closeOnClick:false,offset:12});
+      m.on('mouseenter','inc-l',e=>{if(e.features?.length){m.getCanvas().style.cursor='pointer';pop.setLngLat(e.lngLat).setHTML('<b>'+e.features[0].properties.title+'</b><br/>Sev: '+e.features[0].properties.severity).addTo(m)}});
+      m.on('mouseleave','inc-l',()=>{m.getCanvas().style.cursor='';pop.remove()});
+    });
+    return()=>{m.remove();mapR.current=null;ready.current=false};
+  },[]);
+  useEffect(()=>{
+    if(!mapR.current||!ready.current)return;const m=mapR.current;
+    const sd=(n,d)=>{const s=m.getSource(n);if(s)s.setData(d)};
+    const fc=(fs)=>({type:'FeatureCollection',features:fs});
+    const pt=(arr,g)=>fc((arr||[]).map(x=>({type:'Feature',geometry:{type:'Point',coordinates:[x.longitude,x.latitude]},properties:x})));
+    sd('inc',pt(incidents));sd('res',pt(resources));sd('hosp',pt(hospitals));sd('shlt',pt(shelters));
+    sd('rd',fc((roads||[]).map(r=>({type:'Feature',geometry:{type:'LineString',coordinates:r.geometry},properties:r}))));
+    sd('hz',fc((hazards||[]).map(h=>({type:'Feature',geometry:{type:'Polygon',coordinates:h.geometry},properties:h}))));
+    if(allocations&&incidents&&resources){
+      sd('rte',fc((allocations||[]).map(a=>{const ic=(incidents||[]).find(i=>i.id===a.incident_id),re=(resources||[]).find(r=>r.id===a.resource_id);
+        if(!ic||!re)return null;return{type:'Feature',geometry:{type:'LineString',coordinates:[[re.longitude,re.latitude],[ic.longitude,ic.latitude]]},properties:a}}).filter(Boolean)));
+    }
+  },[incidents,resources,roads,hazards,hospitals,shelters,allocations]);
+  if(typeof maplibregl==='undefined')return<div className="flex items-center justify-center h-full text-gray-500">MapLibre GL JS not loaded. Check internet.</div>;
+  return<div className="relative w-full h-full"><div ref={ref} className="map-box"/>
+    <div className="absolute bottom-3 left-3 glass rounded-lg p-2 text-[10px] space-y-1 z-10">
+      <div className="font-semibold text-gray-300 mb-1">Legend</div>
+      {[[SC[5],'Critical'],[SC[4],'Severe'],[SC[3],'High'],[SC[2],'Moderate / Hospital'],[SC[1],'Low / Shelter'],['#f472b6','Resource']].map(([c,l])=>
+        <div key={l} className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{background:c}}/>{l}</div>)}
+      <div className="border-t border-gray-700 pt-1 mt-1"/>
+      {[['#10b981','Open'],['#f59e0b','Degraded'],['#ef4444','Blocked']].map(([c,l])=>
+        <div key={l} className="flex items-center gap-1.5"><span className="w-3 h-0.5 inline-block" style={{background:c}}/>{l}</div>)}
+    </div>
+  </div>;
+};
+
+/* ═══ 3D VIEW — Three.js ═══ */
+const CX=92.94,CY=26.20,S3=500;
+const toXZ=(lon,lat)=>[(lon-CX)*S3,-(lat-CY)*S3];
+const sColor3=s=>s>=5?0xef4444:s>=4?0xf97316:s>=3?0xf59e0b:s>=2?0x3b82f6:0x10b981;
+const Map3DView=({incidents,resources,roads,hospitals,shelters,hazards,allocations,onSelect})=>{
+  const ref=useRef(null),stateRef=useRef(null),initRef=useRef(false);
+  // --- INIT SCENE ---
+  useEffect(()=>{
+    if(!ref.current||initRef.current||typeof THREE==='undefined')return;
+    initRef.current=true;
+    const W=ref.current.clientWidth,H=ref.current.clientHeight;
+    const scene=new THREE.Scene();
+    scene.background=new THREE.Color(0x080c14);
+    scene.fog=new THREE.FogExp2(0x080c14,.00015);
+    const cam=new THREE.PerspectiveCamera(55,W/H,.1,50000);
+    cam.position.set(0,350,500); cam.lookAt(0,0,0);
+    const ren=new THREE.WebGLRenderer({antialias:true,alpha:false});
+    ren.setSize(W,H);ren.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    ren.domElement.className='three-canvas';
+    ref.current.appendChild(ren.domElement);
+    // lights
+    scene.add(new THREE.AmbientLight(0x8899bb,.6));
+    const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(200,400,300);scene.add(dl);
+    const dl2=new THREE.DirectionalLight(0x4488ff,.3);dl2.position.set(-200,200,-300);scene.add(dl2);
+    // ground
+    const gnd=new THREE.Mesh(new THREE.PlaneGeometry(6000,4000),new THREE.MeshLambertMaterial({color:0x0d1117}));
+    gnd.rotation.x=-Math.PI/2;gnd.position.y=-0.5;scene.add(gnd);
+    // grid
+    const grid=new THREE.GridHelper(6000,120,0x1a2332,0x111a27);grid.position.y=0;scene.add(grid);
+    // ── PROCEDURAL BUILDINGS (Guwahati) ──
+    const rng=s=>{let x=s;return()=>{x=(x*16807)%2147483647;return(x-1)/2147483646}};const rn=rng(42);
+    const bldGroup=new THREE.Group();scene.add(bldGroup);
+    const bMat=i=>new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(.6,.15,.08+i*.002),transparent:true,opacity:.85});
+    // Guwahati core
+    for(let i=0;i<70;i++){const[x,z]=toXZ(91.72+rn()*.04,26.12+rn()*.04);const h=3+rn()*18;const w=1.5+rn()*3;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,w*(0.7+rn()*.5)),bMat(i));
+      m.position.set(x,h/2,z);const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:0x2a3a50,transparent:true,opacity:.3}));
+      e.position.copy(m.position);bldGroup.add(m,e)}
+    // Suburbs
+    for(let i=0;i<90;i++){const[x,z]=toXZ(91.68+rn()*.1,26.08+rn()*.1);const h=1+rn()*6;const w=1+rn()*2.5;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,w*(0.6+rn()*.6)),bMat(70+i));
+      m.position.set(x,h/2,z);bldGroup.add(m)}
+    // Jorhat
+    for(let i=0;i<30;i++){const[x,z]=toXZ(94.19+rn()*.02,26.74+rn()*.02);const h=1+rn()*8;const w=1+rn()*2;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),bMat(160+i));m.position.set(x,h/2,z);bldGroup.add(m)}
+    // Dibrugarh
+    for(let i=0;i<20;i++){const[x,z]=toXZ(94.90+rn()*.02,27.47+rn()*.015);const h=1+rn()*6;const w=1+rn()*2;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),bMat(190+i));m.position.set(x,h/2,z);bldGroup.add(m)}
+    // ── MARKER GROUPS ──
+    const mkGroup=new THREE.Group();scene.add(mkGroup);
+    const clickables=[];
+    // ── ORBIT CONTROLS (manual) ──
+    let theta=0,phi=Math.PI/4,radius=600,target=new THREE.Vector3(0,0,0),dragging=false,panning=false,lastX=0,lastY=0;
+    const updateCam=()=>{cam.position.set(target.x+radius*Math.sin(phi)*Math.sin(theta),target.y+radius*Math.cos(phi),target.z+radius*Math.sin(phi)*Math.cos(theta));cam.lookAt(target)};
+    updateCam();
+    const cv=ren.domElement;
+    cv.addEventListener('mousedown',e=>{if(e.button===0)dragging=true;if(e.button===2)panning=true;lastX=e.clientX;lastY=e.clientY;e.preventDefault()});
+    cv.addEventListener('contextmenu',e=>e.preventDefault());
+    window.addEventListener('mouseup',()=>{dragging=false;panning=false});
+    window.addEventListener('mousemove',e=>{const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;
+      if(dragging){theta-=dx*.005;phi=Math.max(.1,Math.min(Math.PI/2-.01,phi-dy*.005));updateCam()}
+      if(panning){const s=radius*.001;target.x-=dx*s*Math.cos(theta);target.z+=dx*s*Math.sin(theta);target.y+=dy*s;updateCam()}});
+    cv.addEventListener('wheel',e=>{radius=Math.max(20,Math.min(3000,radius+e.deltaY*.5));updateCam();e.preventDefault()},{passive:false});
+    // ── RAYCASTER CLICK ──
+    const ray=new THREE.Raycaster();
+    cv.addEventListener('click',e=>{const rect=cv.getBoundingClientRect();
+      const mouse=new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
+      ray.setFromCamera(mouse,cam);const hits=ray.intersectObjects(clickables);
+      if(hits.length&&hits[0].object.userData?.eId&&onSelect)onSelect(hits[0].object.userData.eId)});
+    // ── RESIZE ──
+    const onResize=()=>{if(!ref.current)return;const w2=ref.current.clientWidth,h2=ref.current.clientHeight;cam.aspect=w2/h2;cam.updateProjectionMatrix();ren.setSize(w2,h2)};
+    window.addEventListener('resize',onResize);
+    // ── ANIMATE ──
+    let animId;const tick=()=>{animId=requestAnimationFrame(tick);ren.render(scene,cam)};tick();
+    stateRef.current={scene,cam,ren,mkGroup,clickables,animId};
+    return()=>{cancelAnimationFrame(animId);window.removeEventListener('resize',onResize);if(ref.current&&ren.domElement.parentNode===ref.current)ref.current.removeChild(ren.domElement);ren.dispose();initRef.current=false;stateRef.current=null};
+  },[]);
+  // ── UPDATE DATA ──
+  useEffect(()=>{
+    if(!stateRef.current)return;const{mkGroup,clickables}=stateRef.current;
+    while(mkGroup.children.length)mkGroup.remove(mkGroup.children[0]);
+    clickables.length=0;
+    // HAZARDS
+    (hazards||[]).forEach(hz=>{if(!hz.geometry?.[0]||hz.geometry[0].length<3)return;
+      const col=hz.type==='FLOOD'?0x3b82f6:hz.type==='EARTHQUAKE'?0xf59e0b:0xef4444;
+      const pts=hz.geometry[0].map(c=>{const[x,z]=toXZ(c[0],c[1]);return new THREE.Vector2(x,z)});
+      const shape=new THREE.Shape(pts);
+      const m=new THREE.Mesh(new THREE.ShapeGeometry(shape),new THREE.MeshLambertMaterial({color:col,transparent:true,opacity:.18,side:THREE.DoubleSide}));
+      m.rotation.x=-Math.PI/2;m.position.y=.3;mkGroup.add(m);
+      const edges=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(p.x,.5,p.y))),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:.5}));
+      mkGroup.add(edges)});
+    // ROADS
+    (roads||[]).forEach(rd=>{if(!rd.geometry?.length)return;
+      const col=rd.state==='BLOCKED'?0xef4444:rd.state==='DEGRADED'?0xf59e0b:0x10b981;
+      const pts=rd.geometry.map(c=>{const[x,z]=toXZ(c[0],c[1]);return new THREE.Vector3(x,rd.state==='BLOCKED'?1.5:.8,z)});
+      const g=new THREE.BufferGeometry().setFromPoints(pts);
+      const l=new THREE.Line(g,new THREE.LineBasicMaterial({color:col,linewidth:2,transparent:true,opacity:rd.state==='OPEN'?.4:.8}));
+      mkGroup.add(l);
+      if(rd.state!=='OPEN'){const mid=pts[Math.floor(pts.length/2)];
+        const sp=new THREE.Mesh(new THREE.SphereGeometry(.8,8,8),new THREE.MeshBasicMaterial({color:col}));
+        sp.position.copy(mid);sp.position.y=3;mkGroup.add(sp)}});
+    // INCIDENTS
+    (incidents||[]).forEach(ic=>{
+      const[x,z]=toXZ(ic.longitude,ic.latitude);const col=sColor3(ic.severity);const r=1.5+ic.severity*.8;
+      // Glowing base ring
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(r*1.5,.2,8,24),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.3}));
+      ring.rotation.x=-Math.PI/2;ring.position.set(x,.2,z);mkGroup.add(ring);
+      // Pillar
+      const h=3+ic.severity*3;const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,h,8),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.25}));
+      pillar.position.set(x,h/2,z);mkGroup.add(pillar);
+      // Marker sphere
+      const sp=new THREE.Mesh(new THREE.SphereGeometry(r,16,16),new THREE.MeshPhongMaterial({color:col,emissive:col,emissiveIntensity:.4}));
+      sp.position.set(x,h+r,z);sp.userData={eType:'inc',eId:ic.id,title:ic.title};
+      clickables.push(sp);mkGroup.add(sp)});
+    // RESOURCES
+    (resources||[]).forEach(r2=>{
+      const[x,z]=toXZ(r2.longitude,r2.latitude);const col=r2.status==='AVAILABLE'?0x10b981:0xf59e0b;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(1.8,1.2,1.2),new THREE.MeshPhongMaterial({color:col,emissive:col,emissiveIntensity:.2}));
+      m.position.set(x,1.2,z);m.userData={eType:'res',eId:r2.id};clickables.push(m);mkGroup.add(m);
+      const base=new THREE.Mesh(new THREE.CylinderGeometry(1.5,.01,.1,12),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.2}));
+      base.position.set(x,.05,z);mkGroup.add(base)});
+    // HOSPITALS
+    (hospitals||[]).forEach(h=>{
+      const[x,z]=toXZ(h.longitude,h.latitude);
+      const m=new THREE.Mesh(new THREE.CylinderGeometry(2,2,4,6),new THREE.MeshPhongMaterial({color:0x3b82f6,emissive:0x1e40af,emissiveIntensity:.3}));
+      m.position.set(x,2,z);mkGroup.add(m);
+      // Cross on top
+      const arm1=new THREE.Mesh(new THREE.BoxGeometry(2,.4,.6),new THREE.MeshBasicMaterial({color:0xffffff}));
+      arm1.position.set(x,4.5,z);mkGroup.add(arm1);
+      const arm2=new THREE.Mesh(new THREE.BoxGeometry(.6,.4,2),new THREE.MeshBasicMaterial({color:0xffffff}));
+      arm2.position.set(x,4.5,z);mkGroup.add(arm2)});
+    // SHELTERS
+    (shelters||[]).forEach(s=>{
+      const[x,z]=toXZ(s.longitude,s.latitude);
+      const m=new THREE.Mesh(new THREE.ConeGeometry(2,3,4),new THREE.MeshPhongMaterial({color:0x10b981,emissive:0x065f46,emissiveIntensity:.2}));
+      m.position.set(x,1.5,z);mkGroup.add(m)});
+    // ALLOCATION ROUTES
+    if(allocations&&incidents&&resources){(allocations||[]).forEach(a=>{
+      const ic=(incidents||[]).find(i=>i.id===a.incident_id),re=(resources||[]).find(r=>r.id===a.resource_id);
+      if(!ic||!re)return;const[x1,z1]=toXZ(re.longitude,re.latitude);const[x2,z2]=toXZ(ic.longitude,ic.latitude);
+      const pts=[new THREE.Vector3(x1,2,z1),new THREE.Vector3((x1+x2)/2,8,(z1+z2)/2),new THREE.Vector3(x2,3+ic.severity*3+1.5+ic.severity*.8,z2)];
+      const curve=new THREE.QuadraticBezierCurve3(...pts);
+      const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(30)),new THREE.LineDashedMaterial({color:0xa78bfa,dashSize:2,gapSize:1,transparent:true,opacity:.7}));
+      l.computeLineDistances();mkGroup.add(l)})}
+  },[incidents,resources,roads,hospitals,shelters,hazards,allocations]);
+  if(typeof THREE==='undefined')return<div className="flex items-center justify-center h-full text-gray-500">Three.js not loaded</div>;
+  return<div ref={ref} className="relative w-full h-full" style={{background:'#080c14'}}>
+    <div className="absolute top-3 left-3 glass rounded-lg p-2 text-[10px] space-y-1 z-10 pointer-events-none">
+      <div className="font-semibold text-gray-300 mb-1">3D Legend</div>
+      {[['#ef4444','Critical'],['#f97316','Severe'],['#f59e0b','High'],['#3b82f6','Hospital'],['#10b981','Shelter / Available'],['#a78bfa','Allocation Route']].map(([c,l])=>
+        <div key={l} className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{background:c}}/>{l}</div>)}
+    </div>
+    <div className="absolute bottom-3 left-3 glass rounded-lg px-3 py-1.5 text-[10px] text-gray-400 z-10 pointer-events-none">Drag: orbit · Right-drag: pan · Scroll: zoom · Click: select</div>
+  </div>;
+};
+
+/* ═══ MAIN APP ═══ */
+const App=()=>{
+  const[view,setView]=useState('dashboard');
+  const[incidents,setI]=useState([]);
+  const[resources,setR]=useState([]);
+  const[allocations,setA]=useState([]);
+  const[recs,setRecs]=useState([]);
+  const[roads,setRd]=useState([]);
+  const[hazards,setHz]=useState([]);
+  const[hospitals,setH]=useState([]);
+  const[shelters,setS]=useState([]);
+  const[eoLayers,setEo]=useState([]);
+  const[audit,setAu]=useState([]);
+  const[sel,setSel]=useState(null);
+  const[sidebar,setSB]=useState(true);
+  const[modal,setModal]=useState(false);
+  const[toast,setToast]=useState(null);
+  const[time,setTime]=useState(new Date());
+  const[form,setForm]=useState({title:'',description:'',type:'FIRE',severity:3,latitude:26.14,longitude:91.74,population_impact:.5,vulnerability_score:.5,accessibility_risk:.5});
+
+  const notify=(m,t='info')=>setToast({m,t,k:Date.now()});
+  const fetchAll=useCallback(async()=>{
+    try{
+      const[inc,res,alloc,rd,hz,eo,au]=await Promise.all([
+        api('/api/incidents').catch(()=>({incidents:[]})),api('/api/resources').catch(()=>({resources:[]})),
+        api('/api/allocations').catch(()=>({allocations:[]})),api('/api/roads').catch(()=>({roads:[],hospitals:[],shelters:[]})),
+        api('/api/hazards').catch(()=>({hazards:[]})),api('/api/eo').catch(()=>({layers:[]})),api('/api/audit').catch(()=>({entries:[]}))
+      ]);
+      setI(inc.incidents||[]);setR(res.resources||[]);setA(alloc.allocations||[]);
+      setRd(rd.roads||[]);setH(rd.hospitals||[]);setS(rd.shelters||[]);
+      setHz(hz.hazards||[]);setEo(eo.layers||[]);setAu(au.entries||[]);
+    }catch(e){console.error(e)}
+  },[]);
+
+  useEffect(()=>{fetchAll();const iv=setInterval(fetchAll,12000);return()=>clearInterval(iv)},[fetchAll]);
+  useEffect(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t)},[]);
+  useEffect(()=>{const h=e=>{if(e.key==='Escape'){setSel(null);setModal(false)}};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h)},[]);
+
+  const doOptimize=async()=>{notify('Optimizing...','info');try{const d=await api('/api/optimize',{method:'POST',body:'{}'});setRecs(d.recommendations||[]);notify(d.recommendations?.length+' recommendations','success');fetchAll()}catch(e){notify('Failed','error')}};
+  const doReallocate=async()=>{notify('Reallocating...','info');try{const d=await api('/api/reallocate',{method:'POST',body:'{}'});setRecs(d.recommendations||[]);notify(d.recommendations?.length+' new recommendations','success');fetchAll()}catch(e){notify('Failed','error')}};
+  const doVerify=async(id,st)=>{try{await api('/api/incidents/'+id+'/verify',{method:'POST',body:JSON.stringify({status:st,notes:'Operator '+st.toLowerCase(),verified_by:'operator'})});notify('Incident '+st.toLowerCase(),'success');fetchAll()}catch(e){notify('Failed','error')}};
+  const doApprove=async rid=>{try{await api('/api/recommendations/'+rid+'/approve',{method:'POST',body:JSON.stringify({approved_by:'operator'})});notify('Approved — allocation created','success');fetchAll()}catch(e){notify('Failed','error')}};
+  const doReject=async rid=>{try{await api('/api/recommendations/'+rid+'/reject',{method:'POST',body:JSON.stringify({reason:'Operator rejected',rejected_by:'operator'})});notify('Rejected','info');fetchAll()}catch(e){notify('Failed','error')}};
+  const doCreate=async()=>{if(!form.title.trim())return;try{await api('/api/incidents',{method:'POST',body:JSON.stringify(form)});notify('Incident created','success');setModal(false);setForm({title:'',description:'',type:'FIRE',severity:3,latitude:26.14,longitude:91.74,population_impact:.5,vulnerability_score:.5,accessibility_risk:.5});fetchAll()}catch(e){notify('Failed','error')}};
+
+  const selInc=incidents.find(i=>i.id===sel);
+  const selRecs=recs.filter(r=>r.incident_id===sel&&r.status==='PENDING');
+  const selAllocs=allocations.filter(a=>a.incident_id===sel);
+  const pending=recs.filter(r=>r.status==='PENDING').length;
+  const sorted=[...incidents].sort((a,b)=>(b.priority_score||0)-(a.priority_score||0));
+  const mapP={incidents,resources,allocations,roads,hazards,hospitals,shelters,eoLayers,onSelect:id=>setSel(id)};
+  const navItems=[{id:'dashboard',icon:'📊',l:'Dashboard'},{id:'map',icon:'🗺️',l:'Map View'},{id:'3d',icon:'🏗️',l:'3D View'},{id:'incidents',icon:'📋',l:'Incidents'},{id:'resources',icon:'🚛',l:'Resources'},{id:'audit',icon:'📜',l:'Audit Log'}];
+  const types=['FIRE','FLOOD','EARTHQUAKE_DAMAGE','MEDICAL_EMERGENCY','STRUCTURAL_COLLAPSE','HAZMAT_SPILL','TRAPPED_PERSONS','UTILITY_FAILURE','EVACUATION'];
+
+  return<div className="h-screen w-screen flex flex-col overflow-hidden bg-[#0a0e17] text-gray-100" style={{fontFamily:'Inter,system-ui,sans-serif'}}>
+    {/* TOP BAR */}
+    <header className="h-14 flex-shrink-0 border-b border-[#1f2937] bg-[#111827]/90 flex items-center justify-between px-4 z-30 backdrop-blur">
+      <div className="flex items-center gap-3">
+        <button onClick={()=>setSB(!sidebar)} className="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-800 transition">☰</button>
+        <span className="font-bold tracking-widest text-sm text-grad">DISASTER RESPONSE COMMAND CENTER</span>
+      </div>
+      <div className="flex items-center gap-4 text-xs">
+        <span className="flex items-center gap-1.5"><span className="dot-on"/><span className="text-gray-400">Online</span></span>
+        <span className="text-gray-500">|</span>
+        <span className="text-gray-400">🔥 <b className="text-white">{incidents.filter(i=>!['RESOLVED','CANCELLED','REJECTED'].includes(i.status)).length}</b></span>
+        <span className="text-gray-400">🚛 <b className="text-white">{resources.filter(r=>r.status==='AVAILABLE').length}</b> avail</span>
+        {pending>0&&<span className="bg-amber-500/20 border border-amber-500/40 text-amber-400 px-2 py-0.5 rounded-full font-semibold pulse-c">⚠ {pending} pending</span>}
+        <span className="text-gray-500">|</span>
+        <span className="font-mono text-gray-400">{time.toLocaleTimeString()}</span>
+      </div>
+    </header>
+
+    <div className="flex flex-1 overflow-hidden">
+      {/* SIDEBAR */}
+      <aside className={`${sidebar?'w-48':'w-14'} flex-shrink-0 border-r border-[#1f2937] bg-[#111827] flex flex-col py-3 px-2 transition-all duration-300 z-20`}>
+        <nav className="space-y-1 flex-1">{navItems.map(n=>
+          <button key={n.id} onClick={()=>setView(n.id)} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition ${view===n.id?'bg-blue-600/20 text-blue-400 font-semibold':'text-gray-400 hover:bg-gray-800 hover:text-gray-200'}`}>
+            <span className="text-base flex-shrink-0">{n.icon}</span>{sidebar&&<span className="truncate">{n.l}</span>}
+          </button>
+        )}</nav>
+        <div className="border-t border-[#1f2937] pt-2 mt-2 space-y-1.5">
+          <button onClick={()=>setModal(true)} className={`w-full bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition flex items-center justify-center gap-1.5 ${sidebar?'py-2 text-sm':'py-2 text-base'}`}>+{sidebar&&' Incident'}</button>
+          <button onClick={doOptimize} className={`w-full bg-emerald-600/80 hover:bg-emerald-500 text-white rounded-lg transition flex items-center justify-center gap-1.5 ${sidebar?'py-1.5 text-xs':'py-1.5 text-sm'}`}>⚡{sidebar&&' Optimize'}</button>
+          <button onClick={doReallocate} className={`w-full bg-purple-600/80 hover:bg-purple-500 text-white rounded-lg transition flex items-center justify-center gap-1.5 ${sidebar?'py-1.5 text-xs':'py-1.5 text-sm'}`}>🔄{sidebar&&' Reallocate'}</button>
+        </div>
+      </aside>
+
+      {/* MAIN */}
+      <main className="flex-1 relative overflow-hidden bg-[#0a0e17]">
+        {view==='dashboard'&&<Dashboard/>}
+        {view==='map'&&<MapView {...mapP}/>}
+        {view==='3d'&&<Map3DView {...mapP}/>}
+
+        {view==='incidents'&&<div className="p-5 h-full overflow-y-auto">
+          <div className="flex items-center justify-between mb-4"><h2 className="text-xl font-bold">Incidents ({incidents.length})</h2>
+            <div className="flex gap-2"><button onClick={doOptimize} className="bg-emerald-600/80 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium">⚡ Optimize</button>
+              <button onClick={doReallocate} className="bg-purple-600/80 hover:bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium">🔄 Reallocate</button></div></div>
+          <div className="glass rounded-xl overflow-hidden"><table className="w-full text-left text-sm"><thead className="bg-gray-900/50 border-b border-[#1f2937]"><tr>
+            <th className="px-4 py-3 text-xs text-gray-400 font-semibold">Status</th><th className="px-4 py-3 text-xs text-gray-400 font-semibold">Title</th>
+            <th className="px-4 py-3 text-xs text-gray-400 font-semibold">Type</th><th className="px-4 py-3 text-xs text-gray-400 font-semibold">Severity</th>
+            <th className="px-4 py-3 text-xs text-gray-400 font-semibold">Priority</th><th className="px-4 py-3 text-xs text-gray-400 font-semibold">Time</th>
+          </tr></thead><tbody>{sorted.map(inc=><tr key={inc.id} onClick={()=>setSel(inc.id)} className={`border-b border-gray-800/50 cursor-pointer transition ${sel===inc.id?'bg-blue-900/20':'hover:bg-gray-800/40'}`}>
+            <td className="px-4 py-3"><Badge t={inc.status} c={SC[inc.severity]||'#6b7280'}/></td>
+            <td className="px-4 py-3 font-medium text-gray-200 max-w-[200px] truncate">{inc.title}</td>
+            <td className="px-4 py-3 text-gray-400 text-xs">{(inc.type||'').replace(/_/g,' ')}</td>
+            <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold sev-${inc.severity}`}>{SL[inc.severity]}</span></td>
+            <td className="px-4 py-3 font-mono text-gray-300">{(inc.priority_score||0).toFixed(3)}</td>
+            <td className="px-4 py-3 text-gray-500 text-xs">{ago(inc.reported_at)}</td>
+          </tr>)}</tbody></table>{!incidents.length&&<div className="text-center py-12 text-gray-500">No incidents</div>}</div>
+        </div>}
+
+        {view==='resources'&&<div className="p-5 h-full overflow-y-auto">
+          <h2 className="text-xl font-bold mb-4">Resources ({resources.length})</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{resources.map(r=>
+            <div key={r.id} className="glass rounded-xl p-4 hover:shadow-lg transition cursor-pointer">
+              <div className="flex items-center justify-between mb-2"><span className="font-semibold text-sm">{r.name}</span><Badge t={r.status} c={r.status==='AVAILABLE'?'#10b981':'#f59e0b'}/></div>
+              <div className="text-xs text-gray-400 space-y-0.5"><div>Type: <span className="text-gray-300">{(r.type||'').replace(/_/g,' ')}</span></div>
+                <div>Speed: <span className="font-mono text-gray-300">{r.speed_kmh} km/h</span></div>
+                <div>Tags: {(r.capability_tags||[]).map(t=><span key={t} className="inline-block bg-gray-800 rounded px-1.5 py-0.5 text-[10px] mr-1">{t}</span>)}</div></div>
+            </div>)}</div>
+        </div>}
+
+        {view==='audit'&&<div className="p-5 h-full overflow-y-auto">
+          <h2 className="text-xl font-bold mb-4">Audit Log ({audit.length})</h2>
+          <div className="glass rounded-xl divide-y divide-gray-800/50">{audit.map((a,i)=>
+            <div key={a.id||i} className="px-5 py-3 flex items-start gap-3 hover:bg-gray-800/30 transition">
+              <span className="text-base mt-0.5">{a.action==='CREATE'?'➕':a.action==='APPROVE'?'✅':a.action==='REJECT'?'❌':'📝'}</span>
+              <div className="flex-1 min-w-0"><div className="text-sm"><b>{a.action}</b> — {a.entity_type}</div><div className="text-xs text-gray-400 mt-0.5">{a.details||'No details'}</div>
+                {a.previous_state&&a.new_state&&<div className="text-xs mt-0.5"><span className="text-red-400">{a.previous_state}</span> → <span className="text-emerald-400">{a.new_state}</span></div>}</div>
+              <div className="text-right flex-shrink-0"><div className="text-xs font-mono text-gray-500">{ago(a.timestamp)}</div><div className="text-[10px] text-gray-600">by {a.user}</div></div>
+            </div>)}{!audit.length&&<div className="text-center py-12 text-gray-500">No audit entries yet</div>}</div>
+        </div>}
+      </main>
+
+      {/* DETAIL PANEL */}
+      {selInc&&<aside className="w-[360px] flex-shrink-0 border-l border-[#1f2937] bg-[#111827] overflow-y-auto z-20" style={{animation:'slideIn .3s ease-out'}}>
+        <div className="p-5 space-y-4">
+          <div className="flex justify-between items-start">
+            <div className="flex-1 pr-2"><h3 className="font-bold text-lg leading-tight">{selInc.title}</h3>
+              <div className="flex gap-2 mt-2 flex-wrap"><Badge t={selInc.status} c={SC[selInc.severity]||'#6b7280'}/><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold sev-${selInc.severity}`}>{SL[selInc.severity]}</span></div></div>
+            <button onClick={()=>setSel(null)} className="text-gray-400 hover:text-white bg-gray-800 rounded-full w-7 h-7 flex items-center justify-center text-sm hover:bg-gray-700 flex-shrink-0">✕</button>
+          </div>
+          <div className="text-xs space-y-1.5 text-gray-400">
+            <div className="flex justify-between"><span>Type</span><span className="text-gray-200">{(selInc.type||'').replace(/_/g,' ')}</span></div>
+            <div className="flex justify-between"><span>Location</span><span className="font-mono text-gray-300">{selInc.latitude?.toFixed(4)}, {selInc.longitude?.toFixed(4)}</span></div>
+            {selInc.description&&<div className="text-gray-300 pt-1 border-t border-gray-800">{selInc.description}</div>}
+          </div>
+          {/* Priority breakdown */}
+          <div className="glass rounded-lg p-3">
+            <h4 className="text-xs font-semibold text-gray-300 mb-2">Priority: <span className="font-mono text-white">{(selInc.priority_score||0).toFixed(3)}</span></h4>
+            {[{l:'Severity (35%)',v:selInc.severity/5,w:.35},{l:'Population (25%)',v:selInc.population_impact,w:.25},{l:'Vulnerability (20%)',v:selInc.vulnerability_score,w:.20},{l:'Access Risk (20%)',v:selInc.accessibility_risk,w:.20}].map(p=>
+              <div key={p.l} className="mb-1.5"><div className="flex justify-between text-[10px] text-gray-400"><span>{p.l}</span><span className="font-mono">{(p.v*p.w).toFixed(3)}</span></div>
+                <div className="w-full h-1.5 bg-gray-800 rounded-full mt-0.5"><div className="h-full bg-blue-500 rounded-full" style={{width:p.v*100+'%'}}/></div></div>)}
+          </div>
+          {/* Verify actions */}
+          {['NEW','UNDER_REVIEW'].includes(selInc.status)&&<div>
+            <h4 className="text-xs font-semibold text-gray-300 mb-2">Verification</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={()=>doVerify(selInc.id,'VERIFIED')} className="bg-emerald-600/80 hover:bg-emerald-500 text-white py-1.5 rounded-lg text-xs font-medium transition">✓ Verify</button>
+              <button onClick={()=>doVerify(selInc.id,'REJECTED')} className="bg-red-600/80 hover:bg-red-500 text-white py-1.5 rounded-lg text-xs font-medium transition">✕ Reject</button>
+              <button onClick={()=>doVerify(selInc.id,'DUPLICATE')} className="bg-gray-600/80 hover:bg-gray-500 text-white py-1.5 rounded-lg text-xs font-medium transition">⊘ Duplicate</button>
+              <button onClick={()=>doVerify(selInc.id,'CANCELLED')} className="bg-gray-600/80 hover:bg-gray-500 text-white py-1.5 rounded-lg text-xs font-medium transition">⊗ Cancel</button>
+            </div></div>}
+          {/* Recommendations */}
+          {selRecs.length>0&&<div><h4 className="text-xs font-semibold text-gray-300 mb-2">Recommendations ({selRecs.length})</h4>
+            {selRecs.map(rec=>{const res=resources.find(r=>r.id===rec.resource_id);return<div key={rec.id} className="glass rounded-lg p-3 mb-2 border border-amber-500/20">
+              <div className="flex justify-between"><div><div className="text-sm font-semibold">{res?.name||'Resource'}</div><div className="text-xs text-gray-400">{res?.type?.replace(/_/g,' ')}</div></div>
+                <div className="text-right"><div className="text-xs font-mono text-blue-400">ETA: {rec.eta_minutes?.toFixed(0)}m</div><div className="text-[10px] text-gray-500">Conf: {(rec.confidence*100).toFixed(0)}%</div></div></div>
+              <div className="text-xs text-gray-400 mt-1">{rec.road_state_summary}</div>
+              {rec.reasons?.map((r,i)=><div key={i} className="text-[10px] text-gray-500">• {r}</div>)}
+              {rec.alternatives?.length>0&&<div className="text-[10px] text-gray-500 border-t border-gray-800 pt-1 mt-1">Alt: {rec.alternatives.map(a=>a.resource_name+' ('+a.eta_minutes?.toFixed(0)+'m)').join(', ')}</div>}
+              <div className="flex gap-2 mt-2">
+                <button onClick={()=>doApprove(rec.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-lg text-xs font-semibold transition">✅ Approve</button>
+                <button onClick={()=>doReject(rec.id)} className="flex-1 bg-red-600/80 hover:bg-red-500 text-white py-1.5 rounded-lg text-xs font-semibold transition">❌ Reject</button>
+              </div></div>})}</div>}
+          {/* Allocations */}
+          {selAllocs.length>0&&<div><h4 className="text-xs font-semibold text-gray-300 mb-2">Allocations ({selAllocs.length})</h4>
+            {selAllocs.map(a=>{const res=resources.find(r=>r.id===a.resource_id);return<div key={a.id} className="glass rounded-lg p-3 mb-2 border border-emerald-500/20">
+              <div className="flex justify-between text-sm"><span className="font-medium">{res?.name||a.resource_id.slice(0,8)}</span><Badge t={a.status} c="#10b981"/></div>
+              <div className="text-xs text-gray-400 mt-1">ETA: {a.eta_minutes?.toFixed(0)}m | By: {a.approved_by||'N/A'}</div></div>})}</div>}
+        </div>
+      </aside>}
+    </div>
+
+    {/* STATUS BAR */}
+    <footer className="h-6 flex-shrink-0 border-t border-[#1f2937] bg-[#111827]/80 flex items-center px-4 text-[10px] text-gray-500 gap-3 z-20">
+      <span className="flex items-center gap-1"><span className="dot-on" style={{width:6,height:6}}/>Connected</span><span>|</span>
+      <span>{incidents.length} incidents • {resources.length} resources • {allocations.length} allocations • {roads.filter(r=>r.state==='BLOCKED').length} roads blocked</span>
+      <span className="ml-auto font-mono">v1.0.0</span>
+    </footer>
+
+    {/* CREATE MODAL */}
+    {modal&&<div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={()=>setModal(false)}>
+      <div className="bg-[#111827] border border-[#1f2937] rounded-2xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()} style={{animation:'scaleIn .2s ease-out'}}>
+        <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">Report Incident</h3><button onClick={()=>setModal(false)} className="text-gray-400 hover:text-white text-xl">✕</button></div>
+        <div className="space-y-3">
+          <div><label className="block text-xs text-gray-400 mb-1">Title *</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-white" placeholder="Describe the incident..."/></div>
+          <div><label className="block text-xs text-gray-400 mb-1">Description</label><textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white h-16 resize-none"/></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-xs text-gray-400 mb-1">Type</label><select value={form.type} onChange={e=>setForm({...form,type:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">{types.map(t=><option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}</select></div>
+            <div><label className="block text-xs text-gray-400 mb-1">Severity: {form.severity} — {SL[form.severity]}</label><input type="range" min={1} max={5} value={form.severity} onChange={e=>setForm({...form,severity:+e.target.value})} className="w-full accent-blue-500"/></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-xs text-gray-400 mb-1">Lat</label><input type="number" step=".001" value={form.latitude} onChange={e=>setForm({...form,latitude:+e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"/></div>
+            <div><label className="block text-xs text-gray-400 mb-1">Lng</label><input type="number" step=".001" value={form.longitude} onChange={e=>setForm({...form,longitude:+e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"/></div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div><label className="block text-[10px] text-gray-400 mb-1">Pop Impact</label><input type="range" min={0} max={1} step={.1} value={form.population_impact} onChange={e=>setForm({...form,population_impact:+e.target.value})} className="w-full accent-blue-500"/><span className="text-[10px] font-mono text-gray-500">{form.population_impact}</span></div>
+            <div><label className="block text-[10px] text-gray-400 mb-1">Vulnerability</label><input type="range" min={0} max={1} step={.1} value={form.vulnerability_score} onChange={e=>setForm({...form,vulnerability_score:+e.target.value})} className="w-full accent-blue-500"/><span className="text-[10px] font-mono text-gray-500">{form.vulnerability_score}</span></div>
+            <div><label className="block text-[10px] text-gray-400 mb-1">Access Risk</label><input type="range" min={0} max={1} step={.1} value={form.accessibility_risk} onChange={e=>setForm({...form,accessibility_risk:+e.target.value})} className="w-full accent-blue-500"/><span className="text-[10px] font-mono text-gray-500">{form.accessibility_risk}</span></div>
+          </div>
+          <button onClick={doCreate} disabled={!form.title.trim()} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition">⚡ Create Incident</button>
+        </div>
+      </div>
+    </div>}
+
+    {/* TOAST */}
+    {toast&&<div key={toast.k} className={`fixed bottom-5 right-5 z-[100] ${toast.t==='error'?'bg-red-900/90 border-red-700':toast.t==='success'?'bg-emerald-900/90 border-emerald-700':'bg-blue-900/90 border-blue-700'} border rounded-lg px-4 py-3 text-sm text-white shadow-2xl max-w-sm`}
+      style={{animation:'slideIn .3s ease-out'}} ref={el=>{if(el)setTimeout(()=>setToast(null),3500)}}>{toast.m}</div>}
+
+    <style>{`@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes scaleIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}`}</style>
+  </div>;
+};
+
+try{
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+}catch(e){
+  document.getElementById('root').innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace"><h2>Render Error</h2><pre>'+e.message+'\n'+e.stack+'</pre></div>';
+}
+</script>
+<script>
+window.addEventListener('error',function(e){
+  var el=document.getElementById('root');
+  if(el&&el.querySelector('[data-reactroot]')===null){
+    el.innerHTML='<div style="padding:40px;color:#ef4444;font-family:Inter,sans-serif"><h2>⚠ Loading Error</h2><p>'+e.message+'</p><p style="color:#888;font-size:13px">File: '+e.filename+' Line: '+e.lineno+'</p><p style="color:#888;margin-top:20px">Try: Cmd+Shift+R to hard refresh</p></div>';
+  }
+});
+</script>
+</body>
+</html>

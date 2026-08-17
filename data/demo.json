@@ -1,0 +1,78 @@
+{
+  "incidents": [
+    {"id":"INC-001","title":"Brahmaputra Embankment Breach","description":"Major embankment breach near Palasbari causing severe flooding","type":"FLOOD","severity":5,"status":"NEW","latitude":26.1200,"longitude":91.5400,"population_impact":0.95,"vulnerability_score":0.9,"accessibility_risk":0.8,"priority_score":0},
+    {"id":"INC-002","title":"Guwahati Landslide - Kamakhya","description":"Landslide on Nilachal Hill near Kamakhya temple","type":"EARTHQUAKE_DAMAGE","severity":4,"status":"NEW","latitude":26.1683,"longitude":91.7053,"population_impact":0.7,"vulnerability_score":0.6,"accessibility_risk":0.7,"priority_score":0},
+    {"id":"INC-003","title":"Kaziranga Park Flooding","description":"Kaziranga National Park submerged, animals stranded","type":"FLOOD","severity":5,"status":"NEW","latitude":26.5775,"longitude":93.1711,"population_impact":0.8,"vulnerability_score":0.85,"accessibility_risk":0.9,"priority_score":0},
+    {"id":"INC-004","title":"Dhemaji District Flash Flood","description":"Flash floods in Dhemaji affecting 50 villages","type":"FLOOD","severity":5,"status":"VERIFIED","latitude":27.4833,"longitude":94.5667,"population_impact":0.9,"vulnerability_score":0.9,"accessibility_risk":0.85,"priority_score":0},
+    {"id":"INC-005","title":"Silchar Urban Flooding","description":"Barak river overflow flooding Silchar town","type":"FLOOD","severity":4,"status":"NEW","latitude":24.8333,"longitude":92.7789,"population_impact":0.75,"vulnerability_score":0.7,"accessibility_risk":0.6,"priority_score":0},
+    {"id":"INC-006","title":"Bridge Collapse - Nagaon","description":"Road bridge collapse on NH37 near Nagaon","type":"STRUCTURAL_COLLAPSE","severity":4,"status":"NEW","latitude":26.3502,"longitude":92.6840,"population_impact":0.6,"vulnerability_score":0.5,"accessibility_risk":0.8,"priority_score":0},
+    {"id":"INC-007","title":"Trapped Villagers - Majuli Island","description":"200+ people stranded on Majuli island due to rising water","type":"TRAPPED_PERSONS","severity":5,"status":"NEW","latitude":26.9500,"longitude":94.1667,"population_impact":0.85,"vulnerability_score":0.95,"accessibility_risk":0.9,"priority_score":0},
+    {"id":"INC-008","title":"Medical Emergency - Jorhat","description":"Hospital flooded, patients need evacuation","type":"MEDICAL_EMERGENCY","severity":5,"status":"NEW","latitude":26.7509,"longitude":94.2037,"population_impact":0.8,"vulnerability_score":0.9,"accessibility_risk":0.7,"priority_score":0},
+    {"id":"INC-009","title":"Chemical Spill - Numaligarh Refinery","description":"Minor chemical leak at Numaligarh refinery area","type":"HAZMAT_SPILL","severity":3,"status":"NEW","latitude":26.6250,"longitude":93.7250,"population_impact":0.4,"vulnerability_score":0.3,"accessibility_risk":0.5,"priority_score":0},
+    {"id":"INC-010","title":"Power Grid Failure - Tezpur","description":"Electrical grid failure affecting Tezpur city","type":"UTILITY_FAILURE","severity":3,"status":"NEW","latitude":26.6338,"longitude":92.8006,"population_impact":0.5,"vulnerability_score":0.4,"accessibility_risk":0.3,"priority_score":0},
+    {"id":"INC-011","title":"School Collapse - Bongaigaon","description":"Waterlogged school building partially collapsed","type":"STRUCTURAL_COLLAPSE","severity":4,"status":"NEW","latitude":26.4769,"longitude":90.5556,"population_impact":0.65,"vulnerability_score":0.7,"accessibility_risk":0.5,"priority_score":0},
+    {"id":"INC-012","title":"Evacuation - Dhubri","description":"Mass evacuation needed in low-lying Dhubri areas","type":"EVACUATION","severity":4,"status":"NEW","latitude":26.0189,"longitude":89.9720,"population_impact":0.8,"vulnerability_score":0.75,"accessibility_risk":0.65,"priority_score":0},
+    {"id":"INC-013","title":"Fire - Dibrugarh Oil Depot","description":"Fire at oil storage facility near Dibrugarh","type":"FIRE","severity":3,"status":"NEW","latitude":27.4728,"longitude":94.9120,"population_impact":0.35,"vulnerability_score":0.3,"accessibility_risk":0.4,"priority_score":0},
+    {"id":"INC-014","title":"Road Submersion - Morigaon","description":"NH27 submerged near Morigaon cutting off villages","type":"FLOOD","severity":3,"status":"NEW","latitude":26.2500,"longitude":92.3400,"population_impact":0.55,"vulnerability_score":0.6,"accessibility_risk":0.75,"priority_score":0},
+    {"id":"INC-015","title":"Landslide - Haflong","description":"Landslide blocking rail and road in Dima Hasao","type":"EARTHQUAKE_DAMAGE","severity":4,"status":"NEW","latitude":25.1667,"longitude":93.0167,"population_impact":0.5,"vulnerability_score":0.55,"accessibility_risk":0.85,"priority_score":0}
+  ],
+  "resources": [
+    {"id":"AMB-01","name":"Ambulance Guwahati-1","type":"AMBULANCE","status":"AVAILABLE","latitude":26.1800,"longitude":91.7500,"capacity":2,"capability_tags":["medical","transport"],"current_assignment":null,"speed_kmh":60,"base_latitude":26.1800,"base_longitude":91.7500},
+    {"id":"AMB-02","name":"Ambulance Guwahati-2","type":"AMBULANCE","status":"AVAILABLE","latitude":26.1400,"longitude":91.7900,"capacity":2,"capability_tags":["medical","transport"],"current_assignment":null,"speed_kmh":60,"base_latitude":26.1400,"base_longitude":91.7900},
+    {"id":"AMB-03","name":"Ambulance Jorhat","type":"AMBULANCE","status":"AVAILABLE","latitude":26.7600,"longitude":94.2200,"capacity":2,"capability_tags":["medical","transport"],"current_assignment":null,"speed_kmh":55,"base_latitude":26.7600,"base_longitude":94.2200},
+    {"id":"AMB-04","name":"Ambulance Silchar","type":"AMBULANCE","status":"AVAILABLE","latitude":24.8400,"longitude":92.7900,"capacity":2,"capability_tags":["medical","transport"],"current_assignment":null,"speed_kmh":50,"base_latitude":24.8400,"base_longitude":92.7900},
+    {"id":"AMB-05","name":"Ambulance Tezpur","type":"AMBULANCE","status":"AVAILABLE","latitude":26.6400,"longitude":92.8100,"capacity":2,"capability_tags":["medical","transport"],"current_assignment":null,"speed_kmh":55,"base_latitude":26.6400,"base_longitude":92.8100},
+    {"id":"RES-01","name":"NDRF Team Alpha","type":"RESCUE_TEAM","status":"AVAILABLE","latitude":26.1900,"longitude":91.7200,"capacity":10,"capability_tags":["search_rescue","flood_rescue","heavy_equipment"],"current_assignment":null,"speed_kmh":40,"base_latitude":26.1900,"base_longitude":91.7200},
+    {"id":"RES-02","name":"NDRF Team Bravo","type":"RESCUE_TEAM","status":"AVAILABLE","latitude":26.7400,"longitude":94.1800,"capacity":10,"capability_tags":["search_rescue","flood_rescue"],"current_assignment":null,"speed_kmh":40,"base_latitude":26.7400,"base_longitude":94.1800},
+    {"id":"RES-03","name":"SDRF Team-1","type":"RESCUE_TEAM","status":"AVAILABLE","latitude":26.3600,"longitude":92.7000,"capacity":8,"capability_tags":["search_rescue","water_rescue"],"current_assignment":null,"speed_kmh":45,"base_latitude":26.3600,"base_longitude":92.7000},
+    {"id":"RES-04","name":"SDRF Team-2","type":"RESCUE_TEAM","status":"AVAILABLE","latitude":26.5000,"longitude":90.5600,"capacity":8,"capability_tags":["search_rescue","water_rescue"],"current_assignment":null,"speed_kmh":45,"base_latitude":26.5000,"base_longitude":90.5600},
+    {"id":"RES-05","name":"Army Rescue Unit","type":"RESCUE_TEAM","status":"AVAILABLE","latitude":26.6500,"longitude":92.8200,"capacity":15,"capability_tags":["search_rescue","heavy_equipment","airlift"],"current_assignment":null,"speed_kmh":50,"base_latitude":26.6500,"base_longitude":92.8200},
+    {"id":"MED-01","name":"Mobile Medical Unit Guwahati","type":"MEDICAL_UNIT","status":"AVAILABLE","latitude":26.1500,"longitude":91.7600,"capacity":6,"capability_tags":["trauma","triage","surgery"],"current_assignment":null,"speed_kmh":50,"base_latitude":26.1500,"base_longitude":91.7600},
+    {"id":"MED-02","name":"Mobile Medical Unit Dibrugarh","type":"MEDICAL_UNIT","status":"AVAILABLE","latitude":27.4800,"longitude":94.9200,"capacity":6,"capability_tags":["trauma","triage"],"current_assignment":null,"speed_kmh":50,"base_latitude":27.4800,"base_longitude":94.9200},
+    {"id":"HAZ-01","name":"HAZMAT Unit Numaligarh","type":"HAZMAT","status":"AVAILABLE","latitude":26.6300,"longitude":93.7300,"capacity":4,"capability_tags":["chemical","decontamination"],"current_assignment":null,"speed_kmh":45,"base_latitude":26.6300,"base_longitude":93.7300},
+    {"id":"FT-01","name":"Fire Tender Guwahati","type":"FIRE_TRUCK","status":"AVAILABLE","latitude":26.1700,"longitude":91.7400,"capacity":6,"capability_tags":["fire","rescue"],"current_assignment":null,"speed_kmh":55,"base_latitude":26.1700,"base_longitude":91.7400},
+    {"id":"FT-02","name":"Fire Tender Dibrugarh","type":"FIRE_TRUCK","status":"AVAILABLE","latitude":27.4700,"longitude":94.9000,"capacity":6,"capability_tags":["fire","rescue"],"current_assignment":null,"speed_kmh":55,"base_latitude":27.4700,"base_longitude":94.9000},
+    {"id":"HELI-01","name":"IAF Helicopter-1","type":"HELICOPTER","status":"AVAILABLE","latitude":26.1100,"longitude":91.5900,"capacity":8,"capability_tags":["airlift","medical","search_rescue"],"current_assignment":null,"speed_kmh":200,"base_latitude":26.1100,"base_longitude":91.5900},
+    {"id":"HELI-02","name":"IAF Helicopter-2","type":"HELICOPTER","status":"AVAILABLE","latitude":27.4900,"longitude":94.9300,"capacity":8,"capability_tags":["airlift","medical","search_rescue"],"current_assignment":null,"speed_kmh":200,"base_latitude":27.4900,"base_longitude":94.9300},
+    {"id":"BOAT-01","name":"NDRF Rescue Boat-1","type":"BOAT","status":"AVAILABLE","latitude":26.1600,"longitude":91.7100,"capacity":12,"capability_tags":["water_rescue","flood_rescue"],"current_assignment":null,"speed_kmh":25,"base_latitude":26.1600,"base_longitude":91.7100},
+    {"id":"BOAT-02","name":"NDRF Rescue Boat-2","type":"BOAT","status":"AVAILABLE","latitude":26.9600,"longitude":94.1700,"capacity":12,"capability_tags":["water_rescue","flood_rescue"],"current_assignment":null,"speed_kmh":25,"base_latitude":26.9600,"base_longitude":94.1700},
+    {"id":"SUP-01","name":"Relief Supply Truck","type":"SUPPLY_TRUCK","status":"AVAILABLE","latitude":26.2000,"longitude":91.7800,"capacity":20,"capability_tags":["supply","food","shelter_material"],"current_assignment":null,"speed_kmh":40,"base_latitude":26.2000,"base_longitude":91.7800}
+  ],
+  "roads": [
+    {"id":"ROAD-01","name":"NH27 Guwahati-Nagaon","state":"OPEN","speed_factor":1.0,"geometry":[[91.74,26.18],[92.10,26.25],[92.40,26.30],[92.68,26.35]]},
+    {"id":"ROAD-02","name":"NH37 Nagaon-Jorhat","state":"DEGRADED","speed_factor":0.4,"geometry":[[92.68,26.35],[93.10,26.40],[93.50,26.50],[94.20,26.75]]},
+    {"id":"ROAD-03","name":"NH15 Guwahati-Bongaigaon","state":"OPEN","speed_factor":0.9,"geometry":[[91.74,26.18],[91.30,26.20],[90.80,26.35],[90.55,26.48]]},
+    {"id":"ROAD-04","name":"NH27 Jorhat-Dibrugarh","state":"OPEN","speed_factor":0.8,"geometry":[[94.20,26.75],[94.50,27.00],[94.70,27.20],[94.91,27.47]]},
+    {"id":"ROAD-05","name":"NH6 Silchar Road","state":"BLOCKED","speed_factor":0.0,"geometry":[[92.78,24.83],[92.90,25.00],[93.00,25.17]]},
+    {"id":"ROAD-06","name":"NH17 Tezpur Bridge","state":"OPEN","speed_factor":0.9,"geometry":[[92.80,26.63],[92.60,26.50],[92.40,26.35]]},
+    {"id":"ROAD-07","name":"Majuli Island Ferry Route","state":"BLOCKED","speed_factor":0.0,"geometry":[[94.00,26.85],[94.10,26.90],[94.17,26.95]]},
+    {"id":"ROAD-08","name":"NH31C Dhubri Highway","state":"DEGRADED","speed_factor":0.3,"geometry":[[89.97,26.02],[90.20,26.10],[90.55,26.25]]},
+    {"id":"ROAD-09","name":"Kaziranga-Bokakhat Road","state":"BLOCKED","speed_factor":0.0,"geometry":[[93.10,26.50],[93.17,26.58],[93.30,26.60]]},
+    {"id":"ROAD-10","name":"NH15 Barpeta Road","state":"DEGRADED","speed_factor":0.5,"geometry":[[91.00,26.30],[90.80,26.40],[90.60,26.50]]},
+    {"id":"ROAD-11","name":"Dibrugarh-Tinsukia Road","state":"OPEN","speed_factor":0.9,"geometry":[[94.91,27.47],[95.10,27.45],[95.35,27.49]]},
+    {"id":"ROAD-12","name":"Haflong-Lumding Road","state":"BLOCKED","speed_factor":0.0,"geometry":[[93.02,25.17],[93.10,25.30],[93.20,25.50]]}
+  ],
+  "hazards": [
+    {"id":"HZ-01","type":"FLOOD","severity":5,"description":"Brahmaputra flood zone - Guwahati to Nagaon belt","detected_at":"2026-08-17T00:00:00Z","geometry":[[[91.40,26.05],[92.80,26.05],[92.80,26.45],[91.40,26.45],[91.40,26.05]]]},
+    {"id":"HZ-02","type":"FLOOD","severity":4,"description":"Majuli Island submersion zone","detected_at":"2026-08-17T00:00:00Z","geometry":[[[93.90,26.85],[94.30,26.85],[94.30,27.05],[93.90,27.05],[93.90,26.85]]]},
+    {"id":"HZ-03","type":"FLOOD","severity":4,"description":"Barak Valley flood zone - Silchar","detected_at":"2026-08-17T00:00:00Z","geometry":[[[92.60,24.70],[92.95,24.70],[92.95,24.95],[92.60,24.95],[92.60,24.70]]]}
+  ],
+  "hospitals": [
+    {"id":"HOSP-01","name":"GMCH Guwahati","latitude":26.1445,"longitude":91.7362,"capacity":500,"current_occupancy":420,"specialties":["trauma","surgery","emergency"]},
+    {"id":"HOSP-02","name":"Jorhat Medical College","latitude":26.7509,"longitude":94.2037,"capacity":300,"current_occupancy":280,"specialties":["trauma","general"]},
+    {"id":"HOSP-03","name":"Silchar Medical College","latitude":24.8200,"longitude":92.7800,"capacity":250,"current_occupancy":230,"specialties":["general","pediatrics"]},
+    {"id":"HOSP-04","name":"Tezpur Medical College","latitude":26.6500,"longitude":92.8000,"capacity":200,"current_occupancy":150,"specialties":["general","emergency"]},
+    {"id":"HOSP-05","name":"Dibrugarh AMCH","latitude":27.4600,"longitude":94.9100,"capacity":350,"current_occupancy":290,"specialties":["trauma","surgery","emergency"]}
+  ],
+  "shelters": [
+    {"id":"SH-01","name":"Sarusajai Stadium Relief Camp","latitude":26.1300,"longitude":91.7800,"capacity":2000,"current_occupancy":1200,"amenities":["food","water","medical","blankets"]},
+    {"id":"SH-02","name":"Nagaon Town Hall Shelter","latitude":26.3550,"longitude":92.6900,"capacity":800,"current_occupancy":600,"amenities":["food","water","medical"]},
+    {"id":"SH-03","name":"Jorhat Relief Center","latitude":26.7450,"longitude":94.2100,"capacity":600,"current_occupancy":350,"amenities":["food","water","blankets"]},
+    {"id":"SH-04","name":"Dhubri Community Center","latitude":26.0200,"longitude":89.9800,"capacity":500,"current_occupancy":400,"amenities":["food","water"]}
+  ],
+  "eo_layers": [
+    {"id":"EO-01","name":"Brahmaputra Flood Extent - Sentinel-1","type":"FLOOD_EXTENT","source":"mock","acquired_at":"2026-08-17T06:00:00Z","geometry":{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[91.40,26.05],[92.80,26.05],[92.80,26.45],[91.40,26.45],[91.40,26.05]]]},"properties":{"satellite":"Sentinel-1","mode":"IW","polarization":"VV"}}},
+    {"id":"EO-02","name":"Majuli Island Displacement Analysis","type":"DISPLACEMENT","source":"mock","acquired_at":"2026-08-17T06:00:00Z","geometry":{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[93.90,26.85],[94.30,26.85],[94.30,27.05],[93.90,27.05],[93.90,26.85]]]},"properties":{"satellite":"Sentinel-1","analysis":"displacement"}}},
+    {"id":"EO-03","name":"Barak Valley Damage Assessment","type":"DAMAGE_ASSESSMENT","source":"mock","acquired_at":"2026-08-17T06:00:00Z","geometry":{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[92.60,24.70],[92.95,24.70],[92.95,24.95],[92.60,24.95],[92.60,24.70]]]},"properties":{"satellite":"Sentinel-2","analysis":"damage"}}}
+  ]
+}
